@@ -1,0 +1,7 @@
+FROM node:22-alpine
+ENV PRISMA_TELEMETRY_DISABLED=1
+RUN apk update && apk add --no-cache openssl
+WORKDIR /app
+COPY packages/database/prisma ./prisma
+RUN npm install -g prisma --loglevel verbose
+CMD ["prisma", "migrate", "deploy", "--schema=prisma/schema.prisma"]
