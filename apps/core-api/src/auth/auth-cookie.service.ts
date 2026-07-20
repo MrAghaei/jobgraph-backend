@@ -17,7 +17,9 @@ export class AuthCookieService {
     res.clearCookie(REFRESH_TOKEN_COOKIE, this.getClearCookieOptions());
   }
 
-  getRefreshTokenFromRequest(cookies: Record<string, string>): string | undefined {
+  getRefreshTokenFromRequest(
+    cookies: Record<string, string>,
+  ): string | undefined {
     return cookies[REFRESH_TOKEN_COOKIE];
   }
 

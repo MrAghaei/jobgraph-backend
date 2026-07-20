@@ -28,9 +28,9 @@ export class GoogleAuthController {
     @Req() req: { user: User },
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.handleGoogleLogin(req.user).then((result) =>
-      this.sendAuthResponse(res, result),
-    );
+    return this.authService
+      .handleGoogleLogin(req.user)
+      .then((result) => this.sendAuthResponse(res, result));
   }
 
   private sendAuthResponse(

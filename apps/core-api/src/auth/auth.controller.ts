@@ -30,10 +30,13 @@ export class AuthController {
 
   @Public()
   @Post("register")
-  register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
-    return this.authService.register(dto).then((result) =>
-      this.sendAuthResponse(res, result),
-    );
+  register(
+    @Body() dto: RegisterDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService
+      .register(dto)
+      .then((result) => this.sendAuthResponse(res, result));
   }
 
   @Public()
@@ -45,9 +48,9 @@ export class AuthController {
     @CurrentUser() user: User,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.login(user).then((result) =>
-      this.sendAuthResponse(res, result),
-    );
+    return this.authService
+      .login(user)
+      .then((result) => this.sendAuthResponse(res, result));
   }
 
   @Public()
@@ -62,15 +65,18 @@ export class AuthController {
       throw new UnauthorizedException("Missing refresh token");
     }
 
-    return this.authService.refreshTokens(refreshToken).then((result) =>
-      this.sendAuthResponse(res, result),
-    );
+    return this.authService
+      .refreshTokens(refreshToken)
+      .then((result) => this.sendAuthResponse(res, result));
   }
 
   @Get("me")
   me(@CurrentUser() user: User) {
-    const { passwordHash: _passwordHash, hashedRefreshToken: _hashedRefreshToken, ...safeUser } =
-      user;
+    const {
+      passwordHash: _passwordHash,
+      hashedRefreshToken: _hashedRefreshToken,
+      ...safeUser
+    } = user;
     return safeUser;
   }
 

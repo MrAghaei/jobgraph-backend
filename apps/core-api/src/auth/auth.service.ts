@@ -51,10 +51,7 @@ export class AuthService {
     };
   }
 
-  async validateUser(
-    email: string,
-    password: string,
-  ): Promise<User | null> {
+  async validateUser(email: string, password: string): Promise<User | null> {
     const user = await this.prisma.user.findUnique({ where: { email } });
 
     if (!user?.passwordHash) {
@@ -77,9 +74,8 @@ export class AuthService {
   async refreshTokens(
     refreshToken: string,
   ): Promise<AuthResponse & IssuedTokens> {
-    const refreshSecret = this.configService.getOrThrow<string>(
-      "JWT_REFRESH_SECRET",
-    );
+    const refreshSecret =
+      this.configService.getOrThrow<string>("JWT_REFRESH_SECRET");
 
     let payload: JwtPayload;
     try {
@@ -98,10 +94,7 @@ export class AuthService {
       throw new UnauthorizedException("Invalid refresh token");
     }
 
-    const isValid = await argon2.verify(
-      user.hashedRefreshToken,
-      refreshToken,
-    );
+    const isValid = await argon2.verify(user.hashedRefreshToken, refreshToken);
 
     if (!isValid) {
       throw new UnauthorizedException("Invalid refresh token");
@@ -173,8 +166,8 @@ export class AuthService {
   isGoogleOAuthEnabled(): boolean {
     return Boolean(
       this.configService.get<string>("GOOGLE_CLIENT_ID") &&
-        this.configService.get<string>("GOOGLE_CLIENT_SECRET") &&
-        this.configService.get<string>("GOOGLE_CALLBACK_URL"),
+      this.configService.get<string>("GOOGLE_CLIENT_SECRET") &&
+      this.configService.get<string>("GOOGLE_CALLBACK_URL"),
     );
   }
 
@@ -202,8 +195,11 @@ export class AuthService {
   }
 
   private sanitizeUser(user: User): SafeUser {
-    const { passwordHash: _passwordHash, hashedRefreshToken: _hashedRefreshToken, ...safeUser } =
-      user;
+    const {
+      passwordHash: _passwordHash,
+      hashedRefreshToken: _hashedRefreshToken,
+      ...safeUser
+    } = user;
     return safeUser;
   }
 }
