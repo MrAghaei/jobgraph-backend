@@ -1,8 +1,8 @@
-import { PrismaClient } from '@prisma/client';
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-export * from '@prisma/client';
+export * from "@prisma/client";
 
 export class PrismaService extends PrismaClient {
   constructor(databaseUrl: string) {
