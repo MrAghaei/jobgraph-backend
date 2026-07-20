@@ -7,7 +7,19 @@ generator client {
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
+enum Role{
+  USER
+  PRO
+  ADMIN
+}
+
 model User {
   id    String @id @default(uuid())
   email String @unique
+  passwordHash String?
+  googleId String?
+  hashedRefreshToken String?
+  role Role @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
