@@ -1,18 +1,33 @@
 import { Controller, Get, Req, Res, UseGuards } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import {
   ApiFoundResponse,
-  ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from "@nestjs/swagger";
 import { User } from "@prisma/client";
-import { Response } from "express";
+import { Request, Response } from "express";
 import { AuthCookieService } from "./auth-cookie.service";
 import { AuthService } from "./auth.service";
 import { Public } from "./decorators/public.decorator";
-import { AuthResponseDto } from "./dto/auth-response.dto";
-import { GoogleAuthGuard } from "./guards/google-auth.guard";
+import { GoogleAuthGuard } from "./google-auth.guard";
 import { AuthResponse, IssuedTokens } from "./types/jwt-payload.type";
+
+function decodeRedirectState(state: string | undefined): string {
+  if (!state) {
+    return "/jobs";
+  }
+
+  try {
+    const redirect = Buffer.from(state, "base64url").toString("utf8");
+    if (!redirect.startsWith("/") || redirect.startsWith("//")) {
+      return "/jobs";
+    }
+    return redirect;
+  } catch {
+    return "/jobs";
+  }
+}
 
 @ApiTags("auth-google")
 @Controller("auth/google")
@@ -20,6 +35,7 @@ export class GoogleAuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly authCookieService: AuthCookieService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Public()
@@ -40,23 +56,30 @@ export class GoogleAuthController {
   @ApiOperation({
     summary: "Google OAuth callback",
     description:
-      "Handles the redirect from Google and returns an auth response with a refresh token cookie.",
+      "Handles the redirect from Google, sets a refresh token cookie, and redirects to the frontend callback page.",
   })
-  @ApiOkResponse({ type: AuthResponseDto })
-  googleCallback(
-    @Req() req: { user: User },
-    @Res({ passthrough: true }) res: Response,
+  @ApiFoundResponse({ description: "Redirect to frontend auth callback" })
+  async googleCallback(
+    @Req() req: Request & { user: User },
+    @Res() res: Response,
   ) {
-    return this.authService
-      .handleGoogleLogin(req.user)
-      .then((result) => this.sendAuthResponse(res, result));
+    const result = await this.authService.handleGoogleLogin(req.user);
+    this.redirectToFrontend(res, result, decodeRedirectState(req.query.state as string | undefined));
   }
 
-  private sendAuthResponse(
+  private redirectToFrontend(
     res: Response,
     result: AuthResponse & IssuedTokens,
-  ): AuthResponse {
+    redirectPath: string,
+  ): void {
     this.authCookieService.setRefreshToken(res, result.refreshToken);
-    return { user: result.user, accessToken: result.accessToken };
+
+    const frontendOrigin = this.configService.getOrThrow<string>("CORS_ORIGIN");
+    const callbackUrl = new URL("/auth/callback", frontendOrigin);
+    callbackUrl.searchParams.set("redirect", redirectPath);
+    callbackUrl.searchParams.set("accessToken", result.accessToken);
+    callbackUrl.searchParams.set("user", encodeURIComponent(JSON.stringify(result.user)));
+
+    res.redirect(callbackUrl.toString());
   }
 }
