@@ -6,6 +6,7 @@ import { AuthCookieService } from "./auth-cookie.service";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { GoogleAuthController } from "./google-auth.controller";
+import { GoogleAuthGuard } from "./google-auth.guard";
 import { GoogleStrategy } from "./strategies/google.strategy";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { LocalStrategy } from "./strategies/local.strategy";
@@ -13,7 +14,10 @@ import { LocalStrategy } from "./strategies/local.strategy";
 @Module({})
 export class AuthModule {
   static register(): DynamicModule {
-    const googleOAuthEnabled = Boolean(process.env.GOOGLE_CLIENT_ID);
+    const googleOAuthEnabled =
+      Boolean(process.env.GOOGLE_CLIENT_ID) &&
+      Boolean(process.env.GOOGLE_CLIENT_SECRET) &&
+      Boolean(process.env.GOOGLE_CALLBACK_URL);
 
     return {
       module: AuthModule,
@@ -39,7 +43,7 @@ export class AuthModule {
         AuthCookieService,
         JwtStrategy,
         LocalStrategy,
-        ...(googleOAuthEnabled ? [GoogleStrategy] : []),
+        ...(googleOAuthEnabled ? [GoogleStrategy, GoogleAuthGuard] : []),
       ],
       exports: [AuthService, JwtModule],
     };
