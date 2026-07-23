@@ -7,19 +7,94 @@ generator client {
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
-enum Role{
+enum Role {
   USER
   PRO
   ADMIN
 }
 
+enum JobStatus {
+  ACTIVE
+  EXPIRED
+}
+
+enum WorkType {
+  REMOTE
+  HYBRID
+  ONSITE
+}
+
 model User {
-  id    String @id @default(uuid())
-  email String @unique
-  passwordHash String?
-  googleId String?
+  id                 String   @id @default(uuid())
+  email              String   @unique
+  passwordHash       String?
+  googleId           String?
   hashedRefreshToken String?
-  role Role @default(USER)
+  role               Role     @default(USER)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String?  @unique
+  website   String?
+  logoUrl   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  jobs      Job[]
+
+  @@index([name])
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  jobs      JobTag[]
+}
+
+
+model Job {
+  id              String          @id @default(uuid())
+  title           String
+  normalizedTitle String
+  description     String          @db.Text
+  companyId       String
+  company         Company         @relation(fields: [companyId], references: [id])
+  location        String?
+  salaryRange     String?
+  experienceLevel String?
+  workType        WorkType?
+  category        String?
+  source          String?
+  sourceUrl       String?
+  postedAt        DateTime
+  datePosted      DateTime        @db.Date
+  status          JobStatus       @default(ACTIVE)
+  expiredAt       DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  tags            JobTag[]
+
+  @@unique([companyId, normalizedTitle, datePosted])
+  @@index([postedAt])
+  @@index([companyId])
+  @@index([experienceLevel])
+  @@index([status])
+  @@index([workType])
+  @@index([category])
+}
+
+model JobTag {
+  jobId     String
+  tagId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([jobId, tagId])
+  @@index([tagId])
 }
