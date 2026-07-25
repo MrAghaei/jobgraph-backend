@@ -2,6 +2,10 @@ import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable, Logger } from "@nestjs/common";
 import { Queue } from "bullmq";
 import {
+  getJobinjaCategory,
+  JobinjaCategoryKey,
+} from "../../jobinja/config/jobinja-categories";
+import {
   SCRAPER_JOB_NAME,
   SCRAPER_QUEUE,
 } from "../constants/scraper-queue.constants";
@@ -28,6 +32,19 @@ export class ScraperProducerService {
     );
 
     return String(job.id);
+  }
+
+  /** Enqueue by registry key (e.g. `"programming"`). */
+  async enqueueJobinjaCategory(
+    categoryKey: JobinjaCategoryKey,
+    pagesToScrape = 1,
+  ): Promise<string> {
+    const category = getJobinjaCategory(categoryKey);
+    return this.enqueueScrapeJob({
+      platform: "jobinja",
+      categoryUrl: category.url,
+      pagesToScrape,
+    });
   }
 
   private buildJobId(payload: ScraperJobPayload): string {
