@@ -2,6 +2,7 @@ import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { JobinjaModule } from "../jobinja/jobinja.module";
+import { JobsModule } from "../jobs/jobs.module";
 import {
   SCRAPER_DEFAULT_JOB_OPTIONS,
   SCRAPER_QUEUE,
@@ -12,6 +13,7 @@ import { JobinjaWorker } from "./workers/jobinja.worker";
 @Module({
   imports: [
     JobinjaModule,
+    JobsModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

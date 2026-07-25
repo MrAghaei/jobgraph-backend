@@ -1,5 +1,6 @@
 export {
   JOBINJA_CATEGORIES,
+  buildCategoryPageUrl,
   getJobinjaCategory,
   listJobinjaCategories,
 } from "./config/jobinja-categories";

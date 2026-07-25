@@ -62,6 +62,30 @@ export class JobinjaScraperService {
   }
 
   /**
+   * Scrape a single category listing page (by page number), then each job detail.
+   * Applies a random 1–3s delay between detail requests (anti-ban).
+   */
+  async scrapeCategoryPage(
+    categoryUrl: string,
+    page: number,
+  ): Promise<NormalizedJob[]> {
+    const listingUrl = buildCategoryPageUrl(categoryUrl, page);
+    this.logger.log(`Scraping category listing page ${page}: ${listingUrl}`);
+
+    const links = await this.scrapeCategoryListing(listingUrl);
+    this.logger.log(`Found ${links.length} job links on page ${page}`);
+
+    const jobs: NormalizedJob[] = [];
+    for (const link of links) {
+      await randomDelay(1000, 3000);
+      const raw = await this.scrapePage(link);
+      jobs.push(ScraperMapper.toNormalizedJob(raw));
+    }
+
+    return jobs;
+  }
+
+  /**
    * Scrape one or more category listing pages, then each job detail.
    * Applies a random 1–3s delay between page / detail requests (anti-ban).
    */
@@ -78,17 +102,8 @@ export class JobinjaScraperService {
         await randomDelay(1000, 3000);
       }
 
-      const listingUrl = buildCategoryPageUrl(categoryUrl, page);
-      this.logger.log(`Scraping category listing page ${page}: ${listingUrl}`);
-
-      const links = await this.scrapeCategoryListing(listingUrl);
-      this.logger.log(`Found ${links.length} job links on page ${page}`);
-
-      for (const link of links) {
-        await randomDelay(1000, 3000);
-        const raw = await this.scrapePage(link);
-        jobs.push(ScraperMapper.toNormalizedJob(raw));
-      }
+      const pageJobs = await this.scrapeCategoryPage(categoryUrl, page);
+      jobs.push(...pageJobs);
     }
 
     return jobs;

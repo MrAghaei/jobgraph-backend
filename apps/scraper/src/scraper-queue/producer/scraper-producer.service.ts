@@ -1,10 +1,7 @@
 import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable, Logger } from "@nestjs/common";
 import { Queue } from "bullmq";
-import {
-  getJobinjaCategory,
-  JobinjaCategoryKey,
-} from "../../jobinja/config/jobinja-categories";
+import { JobinjaCategoryKey } from "../../jobinja/config/jobinja-categories";
 import {
   SCRAPER_JOB_NAME,
   SCRAPER_QUEUE,
@@ -28,7 +25,7 @@ export class ScraperProducerService {
     });
 
     this.logger.log(
-      `Enqueued scrape job ${job.id} for ${payload.platform} (${payload.categoryUrl})`,
+      `Enqueued scrape job ${job.id} for ${payload.platform} (${payload.categoryKey}, maxPages=${payload.maxPages})`,
     );
 
     return String(job.id);
@@ -37,20 +34,16 @@ export class ScraperProducerService {
   /** Enqueue by registry key (e.g. `"programming"`). */
   async enqueueJobinjaCategory(
     categoryKey: JobinjaCategoryKey,
-    pagesToScrape = 1,
+    maxPages = 1,
   ): Promise<string> {
-    const category = getJobinjaCategory(categoryKey);
     return this.enqueueScrapeJob({
       platform: "jobinja",
-      categoryUrl: category.url,
-      pagesToScrape,
+      categoryKey,
+      maxPages,
     });
   }
 
   private buildJobId(payload: ScraperJobPayload): string {
-    const slug = Buffer.from(payload.categoryUrl)
-      .toString("base64url")
-      .slice(0, 32);
-    return `${payload.platform}:${slug}:p${payload.pagesToScrape}`;
+    return `${payload.platform}:${payload.categoryKey}:p${payload.maxPages}`;
   }
 }
