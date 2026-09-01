@@ -104,12 +104,7 @@ export class AuthController {
   @ApiOkResponse({ type: UserResponseDto })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   me(@CurrentUser() user: User) {
-    const {
-      passwordHash: _passwordHash,
-      hashedRefreshToken: _hashedRefreshToken,
-      ...safeUser
-    } = user;
-    return safeUser;
+    return this.authService.toPublicUser(user);
   }
 
   @Post("logout")

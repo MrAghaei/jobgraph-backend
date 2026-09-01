@@ -14,7 +14,7 @@ import {
   AuthResponse,
   IssuedTokens,
   JwtPayload,
-  SafeUser,
+  PublicUser,
 } from "./types/jwt-payload.type";
 
 @Injectable()
@@ -194,12 +194,19 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  private sanitizeUser(user: User): SafeUser {
+  toPublicUser(user: User): PublicUser {
+    return this.sanitizeUser(user);
+  }
+
+  private sanitizeUser(user: User): PublicUser {
     const {
       passwordHash: _passwordHash,
       hashedRefreshToken: _hashedRefreshToken,
       ...safeUser
     } = user;
-    return safeUser;
+    return {
+      ...safeUser,
+      isPro: user.role === "PRO" || user.role === "ADMIN",
+    };
   }
 }

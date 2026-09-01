@@ -11,6 +11,12 @@ export class UserResponseDto {
   @ApiProperty({ enum: Role, example: Role.USER })
   role!: Role;
 
+  @ApiProperty({
+    description: "True when the user has an active Pro (or admin) entitlement",
+    example: false,
+  })
+  isPro!: boolean;
+
   @ApiProperty({ format: "date-time" })
   createdAt!: Date;
 

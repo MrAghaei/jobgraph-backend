@@ -83,6 +83,21 @@ services:
       prisma-migrate:
         condition: service_completed_successfully
 
+  frontend:
+    restart: unless-stopped
+    networks:
+      - jobgraph_net
+    build:
+      context: ../../frontend/jobgraph-frontend
+      dockerfile: Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost/api}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost}
+    expose:
+      - "3000"
+    depends_on:
+      - core-api
+
   nginx:
     image: nginx:alpine
     restart: unless-stopped
@@ -95,6 +110,7 @@ services:
     depends_on:
       - core-api
       - scraper
+      - frontend
 
 networks:
   jobgraph_net:

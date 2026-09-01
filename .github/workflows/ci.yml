@@ -1,0 +1,30 @@
+name: ci
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @repo/database exec prisma generate
+      - run: pnpm lint
+      - run: pnpm --filter core-api test
+      - run: pnpm --filter scraper test
+      - run: pnpm --filter core-api build
+      - run: pnpm --filter scraper build
+      - name: Build core-api image
+        run: docker build -t jobgraph-core-api:ci --build-arg APP_NAME=core-api .
+      - name: Build scraper image
+        run: docker build -t jobgraph-scraper:ci --build-arg APP_NAME=scraper .
