@@ -77,7 +77,7 @@ export class JobinjaScraperService {
 
     const jobs: NormalizedJob[] = [];
     for (const link of links) {
-      await randomDelay(1000, 3000);
+      await randomDelay(400, 900);
       const raw = await this.scrapePage(link);
       jobs.push(ScraperMapper.toNormalizedJob(raw));
     }

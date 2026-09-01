@@ -36,6 +36,8 @@ describe("ScraperMapper", () => {
     expect(normalized.tags).toEqual(["PHP", "MySQL"]);
     expect(normalized.workType).toBe("ONSITE");
     expect(normalized.status).toBe("ACTIVE");
+    expect(normalized.location).toBe("تهران، تهران");
+    expect(normalized.city).toBe("تهران");
   });
 
   it("maps TELECOMMUTE to REMOTE", () => {

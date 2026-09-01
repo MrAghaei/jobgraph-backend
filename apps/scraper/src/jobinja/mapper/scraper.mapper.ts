@@ -6,6 +6,7 @@ import {
 import {
   canonicalizeSourceUrl,
   cleanText,
+  extractCity,
   normalizeTitle,
   toAsciiDigits,
 } from "../utils/text.util";
@@ -20,6 +21,7 @@ export class ScraperMapper {
       cleanText(raw.title)?.replace(/^استخدام\s+/u, "") ?? "untitled";
     const companyName = cleanText(raw.companyName) ?? "unknown";
     const description = cleanText(raw.description) ?? "";
+    const location = cleanText(raw.location);
     const { postedAt, datePosted } = this.resolvePostedDates(raw);
 
     return {
@@ -31,7 +33,8 @@ export class ScraperMapper {
         website: cleanText(raw.companyWebsite),
         logoUrl: cleanText(raw.companyLogoUrl),
       },
-      location: cleanText(raw.location),
+      location,
+      city: extractCity(location),
       salaryRange: cleanText(raw.salaryRange),
       experienceLevel: cleanText(raw.experienceLevel),
       workType: this.mapWorkType(raw),

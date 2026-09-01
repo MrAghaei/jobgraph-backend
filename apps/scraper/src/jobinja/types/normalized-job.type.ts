@@ -1,10 +1,8 @@
-/**
- * Schema-aligned scrape result (no DB ids).
- * Mirrors Prisma `Job` + nested `Company` / tags for the persistence layer.
- */
 export type NormalizedWorkType = "REMOTE" | "HYBRID" | "ONSITE";
 
 export type NormalizedJobStatus = "ACTIVE" | "EXPIRED";
+
+export type JobSource = "jobinja" | "jobvision" | "quera";
 
 export interface NormalizedCompany {
   name: string;
@@ -18,15 +16,14 @@ export interface NormalizedJob {
   description: string;
   company: NormalizedCompany;
   location: string | null;
+  city: string | null;
   salaryRange: string | null;
   experienceLevel: string | null;
   workType: NormalizedWorkType | null;
   category: string | null;
-  source: "jobinja";
+  source: JobSource;
   sourceUrl: string;
-  /** Full timestamp used for `Job.postedAt`. */
   postedAt: string;
-  /** Calendar date `YYYY-MM-DD` used for `Job.datePosted`. */
   datePosted: string;
   status: NormalizedJobStatus;
   tags: string[];

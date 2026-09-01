@@ -2,17 +2,23 @@ import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { JobinjaModule } from "../jobinja/jobinja.module";
+import { JobvisionModule } from "../jobvision/jobvision.module";
 import { JobsModule } from "../jobs/jobs.module";
+import { QueraModule } from "../quera/quera.module";
 import {
   SCRAPER_DEFAULT_JOB_OPTIONS,
   SCRAPER_QUEUE,
 } from "./constants/scraper-queue.constants";
+import { ScrapeController } from "./scrape.controller";
 import { ScraperProducerService } from "./producer/scraper-producer.service";
-import { JobinjaWorker } from "./workers/jobinja.worker";
+import { ScraperSchedulerService } from "./scheduler/scraper-scheduler.service";
+import { ScraperWorker } from "./workers/scraper.worker";
 
 @Module({
   imports: [
     JobinjaModule,
+    JobvisionModule,
+    QueraModule,
     JobsModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
@@ -30,7 +36,8 @@ import { JobinjaWorker } from "./workers/jobinja.worker";
       name: SCRAPER_QUEUE,
     }),
   ],
-  providers: [ScraperProducerService, JobinjaWorker],
+  controllers: [ScrapeController],
+  providers: [ScraperProducerService, ScraperWorker, ScraperSchedulerService],
   exports: [ScraperProducerService, BullModule],
 })
 export class ScraperQueueModule {}

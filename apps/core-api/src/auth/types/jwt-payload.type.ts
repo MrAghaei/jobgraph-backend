@@ -12,11 +12,15 @@ export interface IssuedTokens {
 }
 
 export interface AuthResponse {
-  user: SafeUser;
+  user: PublicUser;
   accessToken: string;
 }
 
 export type SafeUser = Omit<
   import("@prisma/client").User,
   "passwordHash" | "hashedRefreshToken"
->;
+> & {
+  isPro: boolean;
+};
+
+export type PublicUser = SafeUser & { isPro: boolean };

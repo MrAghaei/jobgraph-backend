@@ -49,3 +49,14 @@ export function canonicalizeSourceUrl(url: string): string {
     return url.split("?")[0] ?? url;
   }
 }
+
+/**
+ * Extract the primary city from a Jobinja location string.
+ * Examples: "تهران، تهران" → "تهران", "اصفهان" → "اصفهان"
+ */
+export function extractCity(location: string | null | undefined): string | null {
+  const cleaned = cleanText(location);
+  if (!cleaned) return null;
+  const primary = cleaned.split(/[،,]/)[0]?.trim();
+  return primary && primary.length > 0 ? primary : null;
+}

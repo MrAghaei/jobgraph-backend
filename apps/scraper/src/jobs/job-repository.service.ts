@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { Prisma, WorkType, JobStatus } from "@repo/database";
+import { JobStatus, Prisma, WorkType } from "@repo/database";
+import { AlertDispatchService } from "../alerts/alert-dispatch.service";
 import { NormalizedJob } from "../jobinja/types/normalized-job.type";
 import { PrismaService } from "../prisma/prisma.service";
 import { SkillExtractionService } from "./skill-extraction.service";
@@ -11,57 +12,94 @@ export class JobRepositoryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly skillExtraction: SkillExtractionService,
+    private readonly alertDispatch: AlertDispatchService,
   ) {}
 
   /**
-   * Insert a scraped job (and related company / tags).
-   * @returns `true` if inserted, `false` if skipped due to unique constraint (P2002).
+   * Insert or refresh a scraped job (and related company / tags).
+   * @returns whether the row was inserted, plus the persisted id.
    */
-  async upsertJob(job: NormalizedJob): Promise<boolean> {
+  async upsertJob(
+    job: NormalizedJob,
+  ): Promise<{ inserted: boolean; id: string | null }> {
     const extracted = this.skillExtraction.extractFromJob(job);
     const tagNames = this.mergeTagNames(job.tags, extracted);
+    const company = await this.findOrCreateCompany(job);
+    const tags = await Promise.all(
+      tagNames.map((name) => this.findOrCreateTag(name)),
+    );
+    const datePosted = new Date(job.datePosted);
+
+    const existing = await this.prisma.job.findUnique({
+      where: {
+        companyId_normalizedTitle_datePosted: {
+          companyId: company.id,
+          normalizedTitle: job.normalizedTitle,
+          datePosted,
+        },
+      },
+      select: { id: true },
+    });
+
+    const baseData = {
+      title: job.title,
+      description: job.description,
+      location: job.location,
+      city: job.city,
+      salaryRange: job.salaryRange,
+      experienceLevel: job.experienceLevel,
+      workType: job.workType as WorkType | null,
+      category: job.category,
+      source: job.source,
+      sourceUrl: job.sourceUrl,
+      postedAt: new Date(job.postedAt),
+      status: JobStatus.ACTIVE,
+      expiredAt: null,
+    };
+
+    if (existing) {
+      await this.prisma.$transaction([
+        this.prisma.jobTag.deleteMany({ where: { jobId: existing.id } }),
+        this.prisma.job.update({
+          where: { id: existing.id },
+          data: {
+            ...baseData,
+            tags: {
+              create: tags.map((tag) => ({ tagId: tag.id })),
+            },
+          },
+        }),
+      ]);
+      this.logger.debug(
+        `Updated existing job: ${job.normalizedTitle} @ ${job.company.name} (${job.datePosted})`,
+      );
+      return { inserted: false, id: existing.id };
+    }
 
     try {
-      const company = await this.findOrCreateCompany(job);
-
-      const tags = await Promise.all(
-        tagNames.map((name) => this.findOrCreateTag(name)),
-      );
-
-      await this.prisma.job.create({
+      const created = await this.prisma.job.create({
         data: {
-          title: job.title,
+          ...baseData,
           normalizedTitle: job.normalizedTitle,
-          description: job.description,
           companyId: company.id,
-          location: job.location,
-          salaryRange: job.salaryRange,
-          experienceLevel: job.experienceLevel,
-          workType: job.workType as WorkType | null,
-          category: job.category,
-          source: job.source,
-          sourceUrl: job.sourceUrl,
-          postedAt: new Date(job.postedAt),
-          datePosted: new Date(job.datePosted),
-          status: job.status as JobStatus,
+          datePosted,
           tags: {
-            create: tags.map((tag) => ({
-              tagId: tag.id,
-            })),
+            create: tags.map((tag) => ({ tagId: tag.id })),
           },
         },
+        select: { id: true },
       });
-
-      return true;
+      await this.alertDispatch.notifyInstant(created.id);
+      return { inserted: true, id: created.id };
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === "P2002"
       ) {
         this.logger.debug(
-          `Duplicate job skipped: ${job.normalizedTitle} @ ${job.company.name} (${job.datePosted})`,
+          `Race duplicate skipped: ${job.normalizedTitle} @ ${job.company.name} (${job.datePosted})`,
         );
-        return false;
+        return { inserted: false, id: null };
       }
       throw error;
     }
@@ -73,6 +111,20 @@ export class JobRepositoryService {
     });
 
     if (existing) {
+      const needsUpdate =
+        (job.company.website && existing.website !== job.company.website) ||
+        (job.company.logoUrl && existing.logoUrl !== job.company.logoUrl);
+
+      if (needsUpdate) {
+        return this.prisma.company.update({
+          where: { id: existing.id },
+          data: {
+            website: job.company.website ?? existing.website,
+            logoUrl: job.company.logoUrl ?? existing.logoUrl,
+          },
+        });
+      }
+
       return existing;
     }
 

@@ -7,6 +7,9 @@ import { setupSwagger } from "./swagger/setup-swagger";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  const http = app.getHttpAdapter().getInstance() as { set?: (k: string, v: boolean) => void };
+  http.set?.("etag", false);
+
   app.use(cookieParser());
 
   const corsOrigin = process.env.CORS_ORIGIN;

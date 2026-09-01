@@ -3,6 +3,7 @@ import { Pool, PoolConfig } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 export * from "@prisma/client";
+export * from "./jobinja-categories.js";
 
 const globalForPrisma = global as unknown as { pgPool: Pool };
 

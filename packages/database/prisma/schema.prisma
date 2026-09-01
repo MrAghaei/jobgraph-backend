@@ -24,15 +24,36 @@ enum WorkType {
   ONSITE
 }
 
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELED
+}
+
+enum AlertChannel {
+  TELEGRAM
+  EMAIL
+}
+
+enum AlertCadence {
+  INSTANT
+  DAILY
+  WEEKLY
+}
+
 model User {
-  id                 String   @id @default(uuid())
-  email              String   @unique
+  id                 String         @id @default(uuid())
+  email              String         @unique
   passwordHash       String?
   googleId           String?
   hashedRefreshToken String?
-  role               Role     @default(USER)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  role               Role           @default(USER)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  subscriptions      Subscription[]
+  savedSearches      SavedSearch[]
+  telegramLink       TelegramLink?
 }
 
 model Company {
@@ -56,15 +77,15 @@ model Tag {
   jobs      JobTag[]
 }
 
-
 model Job {
-  id              String          @id @default(uuid())
+  id              String     @id @default(uuid())
   title           String
   normalizedTitle String
-  description     String          @db.Text
+  description     String     @db.Text
   companyId       String
-  company         Company         @relation(fields: [companyId], references: [id])
+  company         Company    @relation(fields: [companyId], references: [id])
   location        String?
+  city            String?
   salaryRange     String?
   experienceLevel String?
   workType        WorkType?
@@ -72,11 +93,11 @@ model Job {
   source          String?
   sourceUrl       String?
   postedAt        DateTime
-  datePosted      DateTime        @db.Date
-  status          JobStatus       @default(ACTIVE)
+  datePosted      DateTime   @db.Date
+  status          JobStatus  @default(ACTIVE)
   expiredAt       DateTime?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
   tags            JobTag[]
 
   @@unique([companyId, normalizedTitle, datePosted])
@@ -86,6 +107,7 @@ model Job {
   @@index([status])
   @@index([workType])
   @@index([category])
+  @@index([city])
 }
 
 model JobTag {
@@ -97,4 +119,65 @@ model JobTag {
 
   @@id([jobId, tagId])
   @@index([tagId])
+}
+
+model Subscription {
+  id          String             @id @default(uuid())
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      SubscriptionStatus @default(PENDING)
+  gateway     String             @default("zarinpal")
+  authority   String?            @unique
+  refId       String?
+  amount      Int
+  periodStart DateTime?
+  periodEnd   DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([userId, status])
+  @@index([periodEnd])
+}
+
+model SavedSearch {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  keyword    String?
+  category   String?
+  city       String?
+  workType   WorkType?
+  experience String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  alerts     Alert[]
+
+  @@index([userId])
+}
+
+model Alert {
+  id            String       @id @default(uuid())
+  savedSearchId String
+  savedSearch   SavedSearch  @relation(fields: [savedSearchId], references: [id], onDelete: Cascade)
+  channel       AlertChannel
+  cadence       AlertCadence
+  enabled       Boolean      @default(true)
+  lastSentAt    DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([savedSearchId, channel, cadence])
+  @@index([enabled, cadence, channel])
+}
+
+model TelegramLink {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatId      String?   @unique
+  verifyToken String    @unique
+  verifiedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
